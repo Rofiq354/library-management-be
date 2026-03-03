@@ -25,9 +25,9 @@ type CategoryDetailResponse struct {
 }
 
 type CategoryListResponse struct {
-	ID          uint   `json:"ID"`
-	Name        string `json:"name"`
-	TotalBooks  int64  `json:"total_books"`
+	ID         uint   `json:"ID"`
+	Name       string `json:"name"`
+	TotalBooks int64  `json:"total_books"`
 }
 
 // GET /categories
@@ -41,8 +41,8 @@ func (h *AuthHandler) GetAllCategories(ctx *gin.Context) {
 		var count int64
 		h.DB.Model(&models.Book{}).Where("category_id = ?", c.ID).Count(&count)
 		response[i] = CategoryListResponse{
-			ID: c.ID,
-			Name: c.Name,
+			ID:         c.ID,
+			Name:       c.Name,
 			TotalBooks: count,
 		}
 	}
@@ -59,12 +59,12 @@ func (h *AuthHandler) GetCategoryByID(ctx *gin.Context) {
 
 	if err := h.DB.Preload("Books").First(&category, id).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Category not found",
+			"error":   true,
+			"message": "Kategori tidak ditemukan",
 		})
 		return
 	}
 
-	// Map ke custom response — buang category_id & nested category
 	books := make([]BookInCategory, len(category.Books))
 	for i, b := range category.Books {
 		books[i] = BookInCategory{
@@ -95,24 +95,31 @@ func (h *AuthHandler) CreateCategory(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error":   true,
+			"message": "Data yang dikirim tidak valid. Mohon periksa kembali inputan Anda.",
 		})
 		return
 	}
 
-	// Cek duplikat nama category
 	var existing models.Category
 	if err := h.DB.Where("name = ?", input.Name).First(&existing).Error; err == nil {
 		ctx.JSON(http.StatusConflict, gin.H{
-			"error": "Category with this name already exists",
+			"error":   true,
+			"message": "Kategori dengan nama tersebut sudah ada",
 		})
 		return
 	}
 
-	h.DB.Create(&input)
+	if err := h.DB.Create(&input).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Gagal menambahkan kategori. Silakan coba lagi.",
+		})
+		return
+	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "Category created successfully",
+		"message": "Kategori berhasil ditambahkan",
 		"data":    input,
 	})
 }
@@ -124,7 +131,8 @@ func (h *AuthHandler) UpdateCategory(ctx *gin.Context) {
 
 	if err := h.DB.First(&category, id).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Category not found",
+			"error":   true,
+			"message": "Kategori tidak ditemukan",
 		})
 		return
 	}
@@ -132,24 +140,31 @@ func (h *AuthHandler) UpdateCategory(ctx *gin.Context) {
 	var input models.Category
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error":   true,
+			"message": "Data yang dikirim tidak valid. Mohon periksa kembali inputan Anda.",
 		})
 		return
 	}
 
-	// Cek duplikat nama (kecuali dirinya sendiri)
 	var existing models.Category
 	if err := h.DB.Where("name = ? AND id != ?", input.Name, id).First(&existing).Error; err == nil {
 		ctx.JSON(http.StatusConflict, gin.H{
-			"error": "Category with this name already exists",
+			"error":   true,
+			"message": "Kategori dengan nama tersebut sudah ada",
 		})
 		return
 	}
 
-	h.DB.Model(&category).Updates(input)
+	if err := h.DB.Model(&category).Updates(input).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Gagal memperbarui kategori. Silakan coba lagi.",
+		})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Category updated successfully",
+		"message": "Kategori berhasil diperbarui",
 		"data":    category,
 	})
 }
@@ -161,24 +176,31 @@ func (h *AuthHandler) DeleteCategory(ctx *gin.Context) {
 
 	if err := h.DB.First(&category, id).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Category not found",
+			"error":   true,
+			"message": "Kategori tidak ditemukan",
 		})
 		return
 	}
 
-	// Cek apakah category masih dipakai oleh buku
 	var bookCount int64
 	h.DB.Model(&models.Book{}).Where("category_id = ?", id).Count(&bookCount)
 	if bookCount > 0 {
 		ctx.JSON(http.StatusConflict, gin.H{
-			"error": "Cannot delete category that still has books assigned to it",
+			"error":   true,
+			"message": "Kategori tidak dapat dihapus karena masih memiliki buku yang terkait",
 		})
 		return
 	}
 
-	h.DB.Delete(&category)
+	if err := h.DB.Delete(&category).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Gagal menghapus kategori. Silakan coba lagi.",
+		})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Category deleted successfully",
+		"message": "Kategori berhasil dihapus",
 	})
 }

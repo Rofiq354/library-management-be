@@ -67,6 +67,7 @@ func SetupRouter(
 				superadmin.GET("/users", authhandler.GetAllUsers)
 				superadmin.GET("/users/:id", authhandler.GetUserByID)
 				superadmin.POST("/users", authhandler.CreateUser)
+				superadmin.PUT("/users/:id", authhandler.UpdateUser)
 				superadmin.DELETE("/users/:id", authhandler.DeleteUser)
 			}
 		}
