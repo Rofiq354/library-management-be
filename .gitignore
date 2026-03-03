@@ -1,0 +1,42 @@
+# Binaries - Hasil build dari 'go build'
+# Jika kamu memberi nama output yang spesifik, tambahkan di sini
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+out/
+dist/
+# Ganti 'app' dengan nama binary proyekmu jika ada
+app
+
+# Dependensi
+# Folder vendor biasanya tidak di-commit kecuali tim kamu sepakat menggunakannya
+# vendor/
+
+# Go toolchain
+# Menyimpan cache build dan hasil pengujian
+go.work
+go.work.sum
+
+# Environment Variables & Secrets
+# JANGAN PERNAH meng-commit file .env yang berisi password/API key
+.env
+.env.local
+*.secret
+
+# IDE Specific Files
+# JetBrains (GoLand)
+.idea/
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Test Coverage
+*.out
+*.prof
