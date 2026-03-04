@@ -72,7 +72,7 @@ func (h *AuthHandler) CreateBook(ctx *gin.Context) {
 	}
 
 	// Handle image upload
-	file, err := ctx.FormFile("cover")
+	coverFile, err := ctx.FormFile("cover")
 	if err != nil && err != http.ErrMissingFile {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error":   true,
@@ -82,20 +82,38 @@ func (h *AuthHandler) CreateBook(ctx *gin.Context) {
 	}
 
 	var coverURL string
-	var publicID string
+	var coverPublicID string
 
-	if file != nil {
+	if coverFile != nil {
 		// Upload ke Cloudinary
-		uploadURL, publicIDResult, err := h.uploadToCloudinary(file)
+		uploadURL, publicID, err := h.uploadToCloudinary(coverFile, "library/books/covers")
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"error":   true,
-				"message": "Gagal upload image ke Cloudinary",
+				"message": "Gagal upload cover ke Cloudinary",
 			})
 			return
 		}
 		coverURL = uploadURL
-		publicID = publicIDResult
+		coverPublicID = publicID
+	}
+
+	// Handle PDF upload
+	pdfFile, _ := ctx.FormFile("pdf")
+	var pdfURL string
+	var pdfPublicID string
+
+	if pdfFile != nil {
+		uploadURL, publicID, err := h.uploadPDFToCloudinary(pdfFile)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error":   true,
+				"message": "Gagal upload PDF ke Cloudinary",
+			})
+			return
+		}
+		pdfURL = uploadURL
+		pdfPublicID = publicID
 	}
 
 	// Create book
@@ -104,10 +122,12 @@ func (h *AuthHandler) CreateBook(ctx *gin.Context) {
 		Author:        author,
 		Description:   description,
 		CoverURL:      coverURL,
+		PDFUrl:        pdfURL,
 		Stock:         stockInt,
 		PublishedYear: publishedYearInt,
 		CategoryID:    uint(categoryID),
-		PublicID:      publicID,
+		CoverPublicID: coverPublicID,
+		PDFPublicID:   pdfPublicID,
 	}
 
 	if err := h.DB.Create(&book).Error; err != nil {
@@ -155,21 +175,39 @@ func (h *AuthHandler) UpdateBook(ctx *gin.Context) {
 		book.Stock = stockInt
 	}
 
-	// Handle new image
-	file, _ := ctx.FormFile("cover")
-	if file != nil {
-		// Delete old image
-		if book.PublicID != "" {
+	// Handle new cover image
+	coverFile, _ := ctx.FormFile("cover")
+	if coverFile != nil {
+		// Delete old cover
+		if book.CoverPublicID != "" {
 			h.Cloudinary.Upload.Destroy(context.Background(), uploader.DestroyParams{
-				PublicID: book.PublicID,
+				PublicID: book.CoverPublicID,
 			})
 		}
 
-		// Upload baru
-		coverURL, publicID, err := h.uploadToCloudinary(file)
+		// Upload new cover
+		coverURL, publicID, err := h.uploadToCloudinary(coverFile, "library/books/covers")
 		if err == nil {
 			book.CoverURL = coverURL
-			book.PublicID = publicID
+			book.CoverPublicID = publicID
+		}
+	}
+
+	// Handle new PDF
+	pdfFile, _ := ctx.FormFile("pdf")
+	if pdfFile != nil {
+		// Delete old PDF
+		if book.PDFPublicID != "" {
+			h.Cloudinary.Upload.Destroy(context.Background(), uploader.DestroyParams{
+				PublicID: book.PDFPublicID,
+			})
+		}
+
+		// Upload new PDF
+		pdfURL, publicID, err := h.uploadPDFToCloudinary(pdfFile)
+		if err == nil {
+			book.PDFUrl = pdfURL
+			book.PDFPublicID = publicID
 		}
 	}
 
@@ -200,10 +238,17 @@ func (h *AuthHandler) DeleteBook(ctx *gin.Context) {
 		return
 	}
 
-	// Delete image dari Cloudinary
-	if book.PublicID != "" {
+	// Delete cover image
+	if book.CoverPublicID != "" {
 		h.Cloudinary.Upload.Destroy(context.Background(), uploader.DestroyParams{
-			PublicID: book.PublicID,
+			PublicID: book.CoverPublicID,
+		})
+	}
+
+	// Delete PDF
+	if book.PDFPublicID != "" {
+		h.Cloudinary.Upload.Destroy(context.Background(), uploader.DestroyParams{
+			PublicID: book.PDFPublicID,
 		})
 	}
 
