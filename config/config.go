@@ -14,6 +14,9 @@ type Config struct {
 	DBName string
 	JWTSecret string
 	FrontendOrigin string
+	CloudinaryCloudName  string
+	CloudinaryAPIKey     string
+	CloudinaryAPISecret  string
 }
 
 func LoadConfig() (*Config, error) {
@@ -30,5 +33,8 @@ func LoadConfig() (*Config, error) {
 		DBName: os.Getenv("DB_NAME"),
 		JWTSecret: os.Getenv("JWT_SECRET"),
 		FrontendOrigin: os.Getenv("FRONTEND_ORIGIN"),
+		CloudinaryCloudName: os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		CloudinaryAPIKey:    os.Getenv("CLOUDINARY_API_KEY"),
+		CloudinaryAPISecret: os.Getenv("CLOUDINARY_API_SECRET"),
 	}, nil
 }

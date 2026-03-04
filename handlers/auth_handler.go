@@ -6,6 +6,7 @@ import (
 
 	"learn-golang/models"
 
+	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -15,12 +16,14 @@ import (
 type AuthHandler struct {
 	DB *gorm.DB
 	JWTSecret string
+	Cloudinary *cloudinary.Cloudinary
 }
 
-func NewAuthHandler(db *gorm.DB, secret string) *AuthHandler {
+func NewAuthHandler(db *gorm.DB, secret string, cld *cloudinary.Cloudinary) *AuthHandler {
 	return  &AuthHandler{
 		DB: db,
 		JWTSecret: secret,
+		Cloudinary: cld,
 	}
 }
 

@@ -19,7 +19,13 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	authHandler := handlers.NewAuthHandler(db, cfg.JWTSecret)
+	// Init Cloudinary
+	cld, err := config.InitCloudinary(cfg)
+	if err != nil {
+		log.Fatal("Failed to init Cloudinary:", err)
+	}
+
+	authHandler := handlers.NewAuthHandler(db, cfg.JWTSecret, cld)
 
 	router := routes.SetupRouter(db, authHandler, cfg)
 
