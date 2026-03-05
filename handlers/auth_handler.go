@@ -28,7 +28,7 @@ func NewAuthHandler(db *gorm.DB, secret string, cld *cloudinary.Cloudinary) *Aut
 }
 
 // LOGIN -------------------------------------------
-func (h *AuthHandler) Login(ctx * gin.Context) {
+func (h *AuthHandler) Login(ctx *gin.Context) {
 	var input struct {
 		Email string `json:"email"`
 		Password string `json:"password"`
@@ -62,7 +62,7 @@ func (h *AuthHandler) Login(ctx * gin.Context) {
 		"user_id": user.ID,
 		"email": user.Email,
 		"role": user.Role,
-		"exp": time.Now().Add(24 * time.Hour).Unix(), // token expired 24 jam
+		"exp": time.Now().Add(24 * time.Hour).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(h.JWTSecret))
@@ -72,7 +72,8 @@ func (h *AuthHandler) Login(ctx * gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"error": true, "message": "Login berhasil!",
+		"error": false,
+		"message": "Login berhasil!",
 		"token": tokenString,
 		"user": gin.H{
 			"id": user.ID,
@@ -84,25 +85,26 @@ func (h *AuthHandler) Login(ctx * gin.Context) {
 }
 
 // REGISTER -------------------------------------------
-func (h *AuthHandler) Register(ctx * gin.Context) {
-	var input models.User
+func (h *AuthHandler) Register(ctx *gin.Context) {
+	var input struct {
+		Name string `json:"name" binding:"required"`
+		Email string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required,min=6"`
+	}
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": true, "message": "Input tidak valid"})
 		return
 	}
 
-	if input.Email == "" || input.Password == "" || input.Name == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": true, "message": "Semua field wajib diisi"})
-		return
-	}
-
+	// Check if email already exists
 	var existing models.User
 	if err := h.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": true, "message": "Email sudah terdaftar"})
 		return
 	}
 
+	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(input.Password),
 		bcrypt.DefaultCost,
@@ -112,11 +114,12 @@ func (h *AuthHandler) Register(ctx * gin.Context) {
 		return
 	}
 
+	// Create user dengan role "user" (bukan admin)
 	user := models.User{
 		Name: input.Name,
 		Email: input.Email,
 		Password: string(hashedPassword),
-		Role: "admin",
+		Role: "user", // Role default untuk user biasa
 	}
 
 	if err := h.DB.Create(&user).Error; err != nil {
@@ -125,13 +128,20 @@ func (h *AuthHandler) Register(ctx * gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"error": true, "message": "Akun admin berhasil dibuat!",
+		"error": false,
+		"message": "Akun berhasil dibuat! Silakan login.",
+		"user": gin.H{
+			"id": user.ID,
+			"name": user.Name,
+			"email": user.Email,
+		},
 	})
 }
 
 // LOGOUT -------------------------------------------
 func (h *AuthHandler) Logout(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
-		"error": true, "message": "Logout berhasil",
+		"error": false,
+		"message": "Logout berhasil",
 	})
 }

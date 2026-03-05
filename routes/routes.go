@@ -30,7 +30,7 @@ func SetupRouter(
 
 	api := router.Group("/api")
 	{
-		// PUBLIC
+		// PUBLIC - HANYA LOGIN
 		api.POST("/login", authhandler.Login)
 
 		books := api.Group("/books")
@@ -50,6 +50,7 @@ func SetupRouter(
 		protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		{
 			protected.POST("/logout", authhandler.Logout)
+			
 			admin := protected.Group("/admin")
 			{
 				admin.POST("/books", authhandler.CreateBook)
@@ -59,6 +60,11 @@ func SetupRouter(
 				admin.POST("/categories", authhandler.CreateCategory)
 				admin.PUT("/categories/:id", authhandler.UpdateCategory)
 				admin.DELETE("/categories/:id", authhandler.DeleteCategory)
+
+				admin.GET("/siswa", authhandler.GetAllSiswa)
+				admin.GET("/siswa/:id", authhandler.GetSiswaByID)
+				admin.PUT("/siswa/:id", authhandler.UpdateSiswa)
+				admin.DELETE("/siswa/:id", authhandler.DeleteSiswa)
 			}
 
 			superadmin := protected.Group("/superadmin")

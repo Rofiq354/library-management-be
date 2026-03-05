@@ -19,6 +19,7 @@ func ConnectDatabase() (*gorm.DB, error) {
 		&models.Category{},
 		&models.User{},
 		&models.Book{},
+		&models.Siswa{},
 	)
 	if err != nil {
 		return nil, err

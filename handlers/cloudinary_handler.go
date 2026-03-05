@@ -43,7 +43,7 @@ func (h *AuthHandler) uploadPDFToCloudinary(file *multipart.FileHeader) (string,
 
 	result, err := h.Cloudinary.Upload.Upload(context.Background(), src, uploader.UploadParams{
 		Folder:       "library/books/pdfs",
-		ResourceType: "raw", // ← Penting untuk PDF
+		ResourceType: "raw",
 	})
 	if err != nil {
 		return "", "", err
