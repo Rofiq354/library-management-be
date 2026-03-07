@@ -20,6 +20,9 @@ func ConnectDatabase() (*gorm.DB, error) {
 		&models.User{},
 		&models.Book{},
 		&models.Siswa{},
+
+		// Tabel untuk Reading History
+		&models.ReadingSession{},
 	)
 	if err != nil {
 		return nil, err

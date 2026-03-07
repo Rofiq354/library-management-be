@@ -19,14 +19,17 @@ func SetupRouter(
 
 	router := gin.New()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{cfg.FrontendOrigin},
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders: []string{"Content-Length"},
+		AllowOrigins:     []string{cfg.FrontendOrigin},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: false,
-		MaxAge: 12 * time.Hour,
+		MaxAge:           12 * time.Hour,
 	}))
 	router.Use(gin.Logger(), gin.Recovery())
+
+	// Initialize Reading History Handler
+	readingHistoryHandler := handlers.NewReadingHistoryHandler(db)
 
 	api := router.Group("/api")
 	{
@@ -50,7 +53,17 @@ func SetupRouter(
 		protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		{
 			protected.POST("/logout", authhandler.Logout)
-			
+
+			// READING HISTORY - Untuk semua user yang authenticated
+			reading := protected.Group("/reading")
+			{
+				reading.POST("/start", readingHistoryHandler.StartReading)
+				reading.POST("/:session_id/progress", readingHistoryHandler.UpdateProgress)
+				reading.GET("/history", readingHistoryHandler.GetHistory)
+				reading.GET("/:session_id", readingHistoryHandler.GetSessionDetail)
+				reading.DELETE("/:session_id", readingHistoryHandler.DeleteHistory)
+			}
+
 			admin := protected.Group("/admin")
 			{
 				admin.POST("/books", authhandler.CreateBook)
