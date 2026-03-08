@@ -3,14 +3,24 @@ package config
 import (
 	"fmt"
 	"learn-golang/models"
+	"os"
 
-	"github.com/glebarez/sqlite"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func ConnectDatabase() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open("library.db"), &gorm.Config{})
+	host := os.Getenv("DB_HOST")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASS")
+	dbname := os.Getenv("DB_NAME")
+	port := os.Getenv("DB_PORT")
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		host, user, password, dbname, port)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -20,8 +30,6 @@ func ConnectDatabase() (*gorm.DB, error) {
 		&models.User{},
 		&models.Book{},
 		&models.Siswa{},
-
-		// Tabel untuk Reading History
 		&models.ReadingSession{},
 	)
 	if err != nil {
@@ -33,7 +41,7 @@ func ConnectDatabase() (*gorm.DB, error) {
 	return db, nil
 }
 
-func seedAdmin(db * gorm.DB) {
+func seedAdmin(db *gorm.DB) {
 	var count int64
 	db.Model(&models.User{}).Count(&count)
 
@@ -44,10 +52,10 @@ func seedAdmin(db * gorm.DB) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("superadmin123"), bcrypt.DefaultCost)
 
 	admin := models.User{
-		Name: "Super Admin",
-		Email: "superadmin@library.com",
+		Name:     "Super Admin",
+		Email:    "superadmin@library.com",
 		Password: string(hashedPassword),
-		Role: "superadmin",
+		Role:     "superadmin",
 	}
 
 	db.Create(&admin)
