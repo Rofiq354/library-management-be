@@ -14,10 +14,10 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
-	db, err := config.ConnectDatabase()
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
+	db, err := config.ConnectDatabase(cfg)
+if err != nil {
+	log.Fatal("Failed to connect to database:", err)
+}
 
 	// Init Cloudinary
 	cld, err := config.InitCloudinary(cfg)
